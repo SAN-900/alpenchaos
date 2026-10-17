@@ -1,0 +1,25 @@
+{
+  "name": "@alpenchaos/server",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "bun --watch src/index.ts",
+    "start": "bun src/index.ts",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@alpenchaos/game-rules": "workspace:^",
+    "@alpenchaos/network-simulator": "workspace:^",
+    "@alpenchaos/protocol-alpenglow": "workspace:^",
+    "@alpenchaos/protocol-legacy": "workspace:^",
+    "@alpenchaos/scenarios": "workspace:^",
+    "@alpenchaos/shared": "workspace:^",
+    "hono": "^4.0.0"
+  },
+  "devDependencies": {
+    "@types/bun": "^1.4.3",
+    "typescript": "^7.0.2",
+    "vitest": "^5.0.5"
+  }
+}

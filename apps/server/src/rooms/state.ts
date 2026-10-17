@@ -1,0 +1,125 @@
+
+import type { WorldState } from "@alpenchaos/network-simulator";
+import type { AlpenglowState } from "@alpenchaos/protocol-alpenglow";
+import type { TowerBftState } from "@alpenchaos/protocol-legacy";
+import type { StoredSession } from "./registry";
+
+function summarizeSlots(
+  slots: Record<
+    string,
+    {
+      status: "finalized" | "skipped";
+      at: number;
+      by: number;
+      latencyMs: number;
+      path?: "fast" | "slow";
+    }
+  >,
+) {
+  return Object.entries(slots)
+    .map(([slot, result]) => ({
+      slot: Number(slot),
+      ...result,
+    }))
+    .sort((a, b) => a.slot - b.slot);
+}
+
+export function buildSessionState(
+  sessionId: string,
+  stored: StoredSession,
+) {
+  const runtime = stored.runtime;
+  const engine =
+    runtime.mode === "watch"
+      ? runtime.sim.engine
+      : runtime.sim.engine;
+
+  const world = engine.state as WorldState;
+  const ag = world.protocols["ag"] as AlpenglowState;
+  const tb = world.protocols["tb"] as TowerBftState;
+
+  const alpenglowSlots = summarizeSlots(ag.global);
+  const towerSlots = summarizeSlots(tb.global);
+
+  const game =
+    runtime.mode === "play"
+      ? runtime.sim.game
+      : undefined;
+
+  const completed =
+    engine.now >= stored.scenario.durationMs ||
+    Boolean(game?.over);
+
+  return {
+    sessionId,
+    scenario: {
+      id: stored.scenario.id,
+      name: stored.scenario.name,
+      mode: stored.scenario.mode,
+      durationMs: stored.scenario.durationMs,
+    },
+    status: completed ? "completed" : "running",
+    simTimeMs: engine.now,
+    network: {
+      totalStake: world.net.totalStake,
+      lossRate: world.net.lossRate,
+      validators: world.net.validators.map(
+        (validator, index) => ({
+          id: validator.id,
+          stake: validator.stake,
+          up: validator.up,
+          region: validator.region,
+          partitionGroup: world.net.group[index],
+          extraDelayMs: world.net.extraDelay[index],
+        }),
+      ),
+    },
+    consensus: {
+      alpenglow: {
+        finalized: alpenglowSlots.filter(
+          (slot) => slot.status === "finalized",
+        ).length,
+        skipped: alpenglowSlots.filter(
+          (slot) => slot.status === "skipped",
+        ).length,
+        fastPath: alpenglowSlots.filter(
+          (slot) => slot.path === "fast",
+        ).length,
+        slowPath: alpenglowSlots.filter(
+          (slot) => slot.path === "slow",
+        ).length,
+        slots: alpenglowSlots,
+      },
+      towerBft: {
+        finalized: towerSlots.filter(
+          (slot) => slot.status === "finalized",
+        ).length,
+        skipped: towerSlots.filter(
+          (slot) => slot.status === "skipped",
+        ).length,
+        optimisticConfirmations: Object.entries(tb.optimistic)
+          .map(([slot, result]) => ({
+            slot: Number(slot),
+            ...result,
+          }))
+          .sort((a, b) => a.slot - b.slot),
+        slots: towerSlots,
+      },
+    },
+    ...(game
+      ? {
+          game: {
+            over: game.over ?? null,
+            players: game.players,
+            frontier: game.frontier,
+            stallMs: game.stallMs,
+            longestStallMs: game.longestStallMs,
+            totalStallMs: game.totalStallMs,
+            transactions: game.txs.length,
+            actions: game.actions.length,
+            feed: game.feed.slice(-20),
+          },
+        }
+      : {}),
+  };
+}
