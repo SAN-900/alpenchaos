@@ -1,0 +1,21 @@
+{
+  "name": "@alpenchaos/protocol-alpenglow",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "main": "src/index.ts",
+  "types": "src/index.ts",
+  "scripts": {
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit -p tsconfig.json"
+  },
+  "dependencies": {
+    "@alpenchaos/shared": "workspace:*",
+    "@alpenchaos/simulation-core": "workspace:*",
+    "@alpenchaos/network-simulator": "workspace:*"
+  },
+  "devDependencies": {
+    "typescript": "^5.0.0",
+    "vitest": "^3.2.4"
+  }
+}

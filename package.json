@@ -1,0 +1,14 @@
+{
+  "name": "alpenchaos",
+  "private": true,
+  "scripts": {
+    "dev:web": "pnpm --filter @alpenchaos/web dev",
+    "dev:server": "pnpm --filter @alpenchaos/server dev",
+    "typecheck": "pnpm -r typecheck",
+    "test": "pnpm --filter @alpenchaos/simulation-core test"
+  },
+  "devDependencies": {
+    "typescript": "^7.0.2",
+    "vitest": "^5.0.5"
+  }
+}
