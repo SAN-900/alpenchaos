@@ -140,19 +140,20 @@ export const websocket = {
             return;
         }
 
+        const { sample: _sample, ...traceSummary } = result.traceSummary;
+
         const update = {
-            type: "simulation:advanced",
-            result,
-            state: buildSessionState(message.roomId, room),
+          type: "simulation:advanced",
+          result: {
+            ...result,
+            traceSummary,
+          },
+          state: buildSessionState(message.roomId, room),
         };
 
-        // Always acknowledge the client that requested the advance.
         sendJson(ws, update);
-
-        // Notify other clients subscribed to this room.
         broadcast(message.roomId, update, ws);
 
-        break;
         }
     }
   },

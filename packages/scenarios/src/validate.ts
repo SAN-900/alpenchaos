@@ -7,6 +7,82 @@ const isObj = (x: unknown): x is Record<string, unknown> => typeof x === "object
 const isInt = (x: unknown, min = 0, max = Number.MAX_SAFE_INTEGER): x is number =>
   typeof x === "number" && Number.isInteger(x) && x >= min && x <= max;
 
+type Ranges = Record<string, [number, number]>;
+
+/** Numeric option objects: unknown keys are rejected, every value must be a finite number in range. */
+function checkNumbers(x: unknown, where: string, ranges: Ranges, err: (m: string) => void): void {
+  if (!isObj(x)) return err(`${where} must be an object`);
+  for (const [k, v] of Object.entries(x)) {
+    const r = ranges[k];
+    if (!r) err(`${where}.${k} is not a known option`);
+    else if (typeof v !== "number" || !Number.isFinite(v) || v < r[0] || v > r[1]) err(`${where}.${k} must be a number in [${r[0]}, ${r[1]}]`);
+  }
+}
+
+const SLOT: [number, number] = [100, 2000];
+const AG: Ranges = { slotMs: SLOT, timeoutMs: [100, 10_000], fastPct: [1, 100], slowPct: [1, 100] };
+const TB: Ranges = { slotMs: SLOT, superNum: [1, 100], superDen: [1, 100], maxLockoutHistory: [1, 64] };
+const TXCFG: Ranges = { slotMs: SLOT, maxAgeSlots: [1, 1000], forwardSlots: [0, 64] };
+const GAME: Ranges = {
+  durationMs: [1000, 600_000], stepMs: [50, 1000], slotMs: SLOT, energyMaxMilli: [1000, 100_000], energyStartMilli: [0, 100_000],
+  regenMilliPerMs: [0, 10], stallWindowMs: [0, 60_000], breakStallMs: [1000, 1_000_000_000], partitionMs: [0, 600_000],
+  slowMs: [0, 600_000], slowExtraMs: [0, 10_000], lossMs: [0, 600_000], lossRate: [0, 1], maxPendingTx: [0, 20],
+};
+const PTS: Ranges = { skip: [0, 1000], finalized: [0, 1000], stallStep: [0, 1000], txLanded: [0, 1000], txLost: [0, 1000] };
+const COSTS: Ranges = {
+  killLeader: [0, 100], killValidator: [0, 100], slowValidator: [0, 100], lossBurst: [0, 100], revive: [0, 100],
+  reviveAll: [0, 100], healPartition: [0, 100], sendTx: [0, 100], partitionBase: [0, 100], partitionPer10: [0, 100],
+};
+const NETWORK: Ranges = { validators: [4, 64], regions: [1, 16], jitterMs: [0, 1000], zipfS: [0, 3], totalStake: [1000, 1_000_000_000], leaderWindows: [1, 4096], slotsPerWindow: [1, 16], lossRate: [0, 1] };
+
+/**
+ * Bounds on everything that reaches the simulation but is not covered above:
+ * option objects (network, protocol, game, txConfig), tx details and list/string
+ * sizes. These stop a shared scenario from asking for a 1 ms step, a negative
+ * slot length or a million faults.
+ */
+function validateBounds(x: Record<string, unknown>, err: (m: string) => void): void {
+  if (typeof x.id === "string" && x.id.length > 64) err("id must be at most 64 characters");
+  for (const k of ["name", "tagline", "lesson"]) if (typeof x[k] === "string" && (x[k] as string).length > 300) err(`${k} must be at most 300 characters`);
+  if (typeof x.description === "string" && x.description.length > 3000) err("description must be at most 3000 characters");
+
+  const cap = (k: string, max: number) => { if (Array.isArray(x[k]) && (x[k] as unknown[]).length > max) err(`${k} must have at most ${max} entries`); };
+  cap("faults", 100); cap("txs", 100); cap("annotations", 200); cap("tags", 20);
+
+  if (isObj(x.network)) {
+    const { traceSends, ...rest } = x.network as Record<string, unknown>;
+    if (traceSends !== undefined && typeof traceSends !== "boolean") err("network.traceSends must be a boolean");
+    checkNumbers(rest, "network", NETWORK, err);
+  }
+  if (x.protocol !== undefined) {
+    if (!isObj(x.protocol)) err("protocol must be an object");
+    else {
+      for (const k of Object.keys(x.protocol)) if (k !== "ag" && k !== "tb") err(`protocol.${k} is not a known protocol`);
+      if (x.protocol.ag !== undefined) checkNumbers(x.protocol.ag, "protocol.ag", AG, err);
+      if (x.protocol.tb !== undefined) checkNumbers(x.protocol.tb, "protocol.tb", TB, err);
+    }
+  }
+  if (x.txConfig !== undefined) checkNumbers(x.txConfig, "txConfig", TXCFG, err);
+  if (x.game !== undefined) {
+    if (!isObj(x.game)) err("game must be an object");
+    else {
+      const { pts, costs, tx, ...rest } = x.game as Record<string, unknown>;
+      checkNumbers(rest, "game", GAME, err);
+      if (pts !== undefined) checkNumbers(pts, "game.pts", PTS, err);
+      if (costs !== undefined) checkNumbers(costs, "game.costs", COSTS, err);
+      if (tx !== undefined) checkNumbers(tx, "game.tx", TXCFG, err);
+    }
+  }
+  if (Array.isArray(x.txs)) {
+    x.txs.forEach((t, i) => {
+      if (!isObj(t)) return;
+      if (typeof t.id === "string" && t.id.length > 64) err(`txs[${i}].id must be at most 64 characters`);
+      if (t.uplinkMs !== undefined && !isInt(t.uplinkMs, 0, 10_000)) err(`txs[${i}].uplinkMs must be an integer in [0, 10000]`);
+      if (t.recentSlot !== undefined && !isInt(t.recentSlot, 0)) err(`txs[${i}].recentSlot must be a non-negative integer`);
+    });
+  }
+}
+
 /**
  * Check untrusted scenario JSON (from disk, a request body, a replay link).
  * Returns every problem found, so an empty array means "safe to run".
@@ -110,6 +186,7 @@ export function validateScenario(x: unknown): string[] {
       if (!isObj(a) || !isInt(a.at) || typeof a.title !== "string" || typeof a.text !== "string") err(`annotations[${i}] needs at, title and text`);
     });
   }
+  if (isObj(x)) validateBounds(x, err);
   return errs;
 }
 

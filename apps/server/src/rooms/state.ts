@@ -1,6 +1,8 @@
 
+import { leaderForSlot } from "@alpenchaos/network-simulator";
 import type { WorldState } from "@alpenchaos/network-simulator";
 import type { AlpenglowState } from "@alpenchaos/protocol-alpenglow";
+import { evaluateObjective, slotMsOf } from "@alpenchaos/scenarios";
 import type { TowerBftState } from "@alpenchaos/protocol-legacy";
 import type { StoredSession } from "./registry";
 
@@ -50,6 +52,8 @@ export function buildSessionState(
     engine.now >= stored.scenario.durationMs ||
     Boolean(game?.over);
 
+  const currentSlot = Math.floor(engine.now / slotMsOf(stored.scenario));
+
   return {
     sessionId,
     scenario: {
@@ -60,6 +64,10 @@ export function buildSessionState(
     },
     status: completed ? "completed" : "running",
     simTimeMs: engine.now,
+    clock: {
+      slot: currentSlot,
+      leader: leaderForSlot(world.net, currentSlot),
+    },
     network: {
       totalStake: world.net.totalStake,
       lossRate: world.net.lossRate,
@@ -116,6 +124,13 @@ export function buildSessionState(
             longestStallMs: game.longestStallMs,
             totalStallMs: game.totalStallMs,
             transactions: game.txs.length,
+            transactionStatus: game.txs.map((t) => ({
+              id: t.spec.id,
+              status: t.outcome?.status ?? "pending",
+            })),
+            objective: stored.scenario.objective
+              ? evaluateObjective(game, stored.scenario.objective)
+              : null,
             actions: game.actions.length,
             feed: game.feed.slice(-20),
           },
