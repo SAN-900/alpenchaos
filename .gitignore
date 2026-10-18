@@ -19,3 +19,9 @@ pnpm-debug.log*
 
 .vscode/
 .idea/
+
+# local databases (and SQLite sidecar files)
+*.sqlite
+*.sqlite-wal
+*.sqlite-shm
+*.db

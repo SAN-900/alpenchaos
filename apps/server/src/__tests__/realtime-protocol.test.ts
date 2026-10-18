@@ -51,6 +51,8 @@ test("origin checks: browsers must match, tools without Origin pass", () => {
   expect(isOriginAllowed("https://evil.example", allowed)).toBe(false);
   expect(isOriginAllowed(null, allowed)).toBe(true);
   expect(isOriginAllowed("http://localhost:3000/", allowed)).toBe(false);
-  expect(getAllowedOrigins({})).toEqual(["http://localhost:3000"]);
-  expect(getAllowedOrigins({ ALLOWED_ORIGINS: " https://a.com , https://b.com ," })).toEqual(["https://a.com", "https://b.com"]);
+  expect(getAllowedOrigins({})).toEqual(["http://localhost:3000", "http://127.0.0.1:3000"]);
+  expect(getAllowedOrigins({ ALLOWED_ORIGINS: " https://a.com , https://b.com ," })).toEqual([
+    "http://localhost:3000", "http://127.0.0.1:3000", "https://a.com", "https://b.com",
+  ]);
 });

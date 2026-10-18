@@ -26,9 +26,19 @@ function summarizeSlots(
     .sort((a, b) => a.slot - b.slot);
 }
 
+export type StateOptions = {
+  /**
+   * Keep only the newest N slots in the `slots` lists. Counts (finalized, skipped,
+   * fast/slow) always cover the whole match. Without this the payload grows with
+   * match length, which matters when it is re-sent to every client every second.
+   */
+  slotWindow?: number;
+};
+
 export function buildSessionState(
   sessionId: string,
   stored: StoredSession,
+  opts: StateOptions = {},
 ) {
   const runtime = stored.runtime;
   const engine =
@@ -53,6 +63,8 @@ export function buildSessionState(
     Boolean(game?.over);
 
   const currentSlot = Math.floor(engine.now / slotMsOf(stored.scenario));
+  const recent = <T extends { slot: number }>(xs: T[]): T[] =>
+    opts.slotWindow === undefined ? xs : xs.filter((s) => s.slot > currentSlot - opts.slotWindow!);
 
   return {
     sessionId,
@@ -96,7 +108,7 @@ export function buildSessionState(
         slowPath: alpenglowSlots.filter(
           (slot) => slot.path === "slow",
         ).length,
-        slots: alpenglowSlots,
+        slots: recent(alpenglowSlots),
       },
       towerBft: {
         finalized: towerSlots.filter(
@@ -105,13 +117,15 @@ export function buildSessionState(
         skipped: towerSlots.filter(
           (slot) => slot.status === "skipped",
         ).length,
-        optimisticConfirmations: Object.entries(tb.optimistic)
-          .map(([slot, result]) => ({
-            slot: Number(slot),
-            ...result,
-          }))
-          .sort((a, b) => a.slot - b.slot),
-        slots: towerSlots,
+        optimisticConfirmations: recent(
+          Object.entries(tb.optimistic)
+            .map(([slot, result]) => ({
+              slot: Number(slot),
+              ...result,
+            }))
+            .sort((a, b) => a.slot - b.slot),
+        ),
+        slots: recent(towerSlots),
       },
     },
     ...(game

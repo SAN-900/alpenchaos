@@ -28,7 +28,7 @@ scenarioRoutes.get("/scenarios/daily", (c) => {
 
 /** Full scenario, including annotations and objective, for the intro screen. */
 scenarioRoutes.get("/scenarios/:id", (c) => {
-  const scenario = resolveScenario(c.req.param("id"));
+  const scenario = resolveScenario(c.req.param("id"), new Date(), { anyPastDate: true });
   if (!scenario) return c.json({ error: "SCENARIO_NOT_FOUND", message: "Unknown scenario" }, 404);
   return c.json(scenario);
 });

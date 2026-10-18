@@ -27,7 +27,10 @@ export type HubOptions = {
   maxRooms?: number;
 };
 
-type Conn = { sock: Socket; roomId?: string; seat?: Role | "spectator"; limiter: TokenBucket; errors: number };
+type Conn = { sock: Socket; roomId?: string; seat?: Role | "spectator"; limiter: TokenBucket; flood: TokenBucket; errors: number };
+
+/** How many recent slots the periodic full-state snapshot carries (counts still cover the whole match). */
+export const STATE_SLOT_WINDOW = 60;
 
 export type CreateRoomResult =
   | { ok: true; roomId: string }
@@ -90,7 +93,7 @@ export class Hub {
   // ---- connections -------------------------------------------------------
 
   connect(sock: Socket): void {
-    this.conns.set(sock.id, { sock, limiter: new TokenBucket(10, 5, this.o.now()), errors: 0 });
+    this.conns.set(sock.id, { sock, limiter: new TokenBucket(10, 5, this.o.now()), flood: new TokenBucket(40, 20, this.o.now()), errors: 0 });
   }
 
   disconnect(sockId: string): void {
@@ -102,7 +105,12 @@ export class Hub {
     if (conn.seat === "spectator") room.spectators.delete(sockId);
     else if (conn.seat) {
       const seat = room.seats[conn.seat];
-      if (seat?.sock?.id === sockId) delete seat.sock;
+      if (seat?.sock?.id === sockId) {
+        delete seat.sock;
+        // Before the match starts nothing is at stake, so free the seat instead of locking
+        // it behind a token the player may have lost (page refresh, closed tab).
+        if (room.status === "lobby") delete room.seats[conn.seat];
+      }
     }
     room.broadcast({ t: "presence", seats: this.presence(room), spectators: room.spectators.size });
   }
@@ -110,6 +118,8 @@ export class Hub {
   message(sockId: string, raw: string): void {
     const conn = this.conns.get(sockId);
     if (!conn) return;
+    // Cheap frames (ping, bad JSON, failed joins) can still be flooded, so every message costs a token.
+    if (!conn.flood.take(this.o.now())) return this.fail(conn, "RATE_LIMITED", "slow down");
     const parsed = parseClientMessage(raw);
     if (!parsed.ok) return this.fail(conn, parsed.code, parsed.message);
     const msg = parsed.msg;
@@ -142,7 +152,11 @@ export class Hub {
         if (room.sockets().length === 0 && now - room.lastSocketReal > ABANDON_MS) {
           this.removeRoom(room, "abandoned");
         } else {
-          this.stepRoom(room, now);
+          try {
+            this.stepRoom(room, now);
+          } catch (e) {
+            this.failRoom(room, e);
+          }
         }
       } else if (room.overReal !== undefined && now - room.overReal > OVER_KEEP_MS) {
         this.removeRoom(room, "finished");
@@ -182,7 +196,7 @@ export class Hub {
     runtime: { mode: "play", sim: room.session },
     history: [],
     lastUsed: 0,
-  });
+  }, { slotWindow: STATE_SLOT_WINDOW });
 }
 
   private playersOf(room: MatchRoom) {
@@ -333,6 +347,13 @@ export class Hub {
       objectiveMet: record.objectiveMet,
       state: this.stateOf(room),
     });
+  }
+
+  /** A simulation that throws (e.g. the engine's event-storm guard) ends that room only. Nothing is saved. */
+  private failRoom(room: MatchRoom, e: unknown): void {
+    console.error(`room ${room.id} failed`, e);
+    room.broadcast({ t: "error", code: "SIM_ERROR", message: "the simulation failed; this match was closed" });
+    this.removeRoom(room, "simulation error");
   }
 
   private removeRoom(room: MatchRoom, why: string): void {

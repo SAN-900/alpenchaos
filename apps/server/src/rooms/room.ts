@@ -48,14 +48,28 @@ export type ActOutcome =
   | { ok: false; error: "SESSION_NOT_FOUND" | "NOT_PLAY_MODE" | "ACTION_REJECTED"; message: string };
 
 
-export function resolveScenario(id: string, now: Date = new Date()): Scenario | undefined {
+/**
+ * Find a preset or a daily by id.
+ *
+ * Starting a match on a daily is limited to yesterday/today/tomorrow (UTC), so clients
+ * cannot spin up arbitrary seeds. Viewing one is not: a replay of last week's daily
+ * must still be re-simulable, so `anyPastDate` lets a date in the past through.
+ */
+export function resolveScenario(
+  id: string,
+  now: Date = new Date(),
+  opts: { anyPastDate?: boolean } = {},
+): Scenario | undefined {
   const preset = getScenario(id);
   if (preset) return preset;
   const m = /^daily-(\d{4}-\d{2}-\d{2})$/.exec(id);
   if (!m) return undefined;
+  const date = m[1]!;
   const DAY = 86_400_000;
   const allowed = [-1, 0, 1].map((d) => dateKey(new Date(now.getTime() + d * DAY)));
-  return allowed.includes(m[1]!) ? dailyScenario(m[1]!) : undefined;
+  if (allowed.includes(date)) return dailyScenario(date);
+  if (opts.anyPastDate && date < allowed[0]! && !Number.isNaN(Date.parse(date))) return dailyScenario(date);
+  return undefined;
 }
 
 export function createSession(sessionId: string, scenarioId: string, now: Date = new Date()) {
