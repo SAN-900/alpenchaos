@@ -26,7 +26,7 @@ test("POST /rooms creates a lobby for a play scenario; GET /rooms/:id describes 
   const res = await post(app, "/rooms", { scenarioId: daily() });
   const body = (await res.json()) as { roomId: string; ws: string };
   expect(res.status).toBe(201);
-  expect(body.ws).toBe("/ws");
+  expect(body.ws).toBe("/ws/match");
   const info = await app.request(`/rooms/${body.roomId}`);
   expect(info.status).toBe(200);
   expect(await info.json()).toMatchObject({ status: "lobby", seats: { chaos: false, defender: false } });
