@@ -5,8 +5,8 @@ import {
 } from "@alpenchaos/scenarios";
 import type { TraceEntry } from "@alpenchaos/shared";
 import {
-  createStoredSession,
-  getStoredSession,
+  getRoom,
+  registerRoom,
   type SessionRuntime,
 } from "./registry";
 import { summarizeTrace, type TraceSummary } from "../services/trace-summary";
@@ -55,7 +55,7 @@ export function createSession(
           sim: createScenarioEngine(scenario),
         };
 
-  createStoredSession(sessionId, {
+  registerRoom(sessionId, {
     scenario,
     runtime,
   });
@@ -74,7 +74,7 @@ export function advanceSession(
   sessionId: string,
   durationMs: number,
 ): AdvanceResult {
-  const stored = getStoredSession(sessionId);
+  const stored = getRoom(sessionId);
 
   if (!stored) {
     return {

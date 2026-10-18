@@ -5,7 +5,7 @@ import {
   createSession,
 } from "../rooms/room";
 import { buildSessionState } from "../rooms/state";
-import { getStoredSession } from "../rooms/registry";
+import { getRoom } from "../rooms/registry";
 
 export const sessionRoutes = new Hono();
 
@@ -108,7 +108,7 @@ sessionRoutes.post("/sessions/:sessionId/advance", async (c) => {
 
 sessionRoutes.get("/sessions/:sessionId", (c) => {
   const sessionId = c.req.param("sessionId");
-  const stored = getStoredSession(sessionId);
+  const stored = getRoom(sessionId);
 
   if (!stored) {
     return c.json(

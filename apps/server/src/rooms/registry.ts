@@ -21,24 +21,34 @@ export type StoredSession = {
 
 const sessions = new Map<string, StoredSession>();
 
-export function createStoredSession(
-  sessionId: string,
-  session: Omit<StoredSession, "history">,
+
+const rooms = new Map<string, StoredSession>();
+
+export function registerRoom(
+  roomId: string,
+  room: Omit<StoredSession, "history">,
 ): void {
-  sessions.set(sessionId, {
-    ...session,
+  if (rooms.has(roomId)) {
+    throw new Error(`Room already exists: ${roomId}`);
+  }
+
+  rooms.set(roomId, {
+    ...room,
     history: [],
   });
 }
 
-export function getStoredSession(
-  sessionId: string,
+export function getRoom(
+  roomId: string,
 ): StoredSession | undefined {
-  return sessions.get(sessionId);
+  return rooms.get(roomId);
 }
 
-export function deleteStoredSession(
-  sessionId: string,
-): boolean {
-  return sessions.delete(sessionId);
+export function removeRoom(roomId: string): boolean {
+  return rooms.delete(roomId);
 }
+
+export function getRoomCount(): number {
+  return rooms.size;
+}
+
