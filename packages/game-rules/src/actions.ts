@@ -6,7 +6,7 @@ import type { NetworkState } from "@alpenchaos/network-simulator";
 import { CHAOS_ACTIONS, DEFENDER_ACTIONS, type Action, type GameState, type Role } from "./types";
 
 export type Plan =
-  | { ok: true; cost: number; script: FaultScript; feed: string; tx?: TxSpec }
+  | { ok: true; cost: number; script: FaultScript; feed: string; tx?: TxSpec; partitionUntil?: number; lossUntil?: number; slowUntil?: { v: number; until: number } }
   | { ok: false; reason: string };
 
 const no = (reason: string): Plan => ({ ok: false, reason });
@@ -36,18 +36,23 @@ export function planAction(net: NetworkState, g: GameState, role: Role, a: Actio
     case "partition": {
       if (!Number.isInteger(a.pct) || a.pct < 10 || a.pct > 40) return no("partition pct must be an integer in [10, 40]");
       if (partitionActive(net)) return no("a partition is already active");
+      if (now < g.partitionUntil) {
+        return no(`partition is on cooldown for ${Math.ceil((g.partitionUntil - now) / 1000)}s more`);
+      }
       const cost = cfg.costs.partitionBase + Math.ceil(a.pct / 10) * cfg.costs.partitionPer10;
       const script = partitionStake(net, a.pct, { at: now, healAt: now + cfg.partitionMs });
-      return { ok: true, cost, script, feed: `chaos partitioned ~${a.pct}% of stake` };
+      return { ok: true, cost, script, feed: `chaos partitioned ~${a.pct}% of stake`, partitionUntil: now + cfg.partitionMs };
     }
     case "slowValidator": {
       if (!validIndex(net, a.v)) return no("invalid validator");
+      if (now < (g.slowUntil[String(a.v)] ?? 0) || net.extraDelay[a.v]! > 0) return no(`v${a.v} is already slowed`);
       const script = slowValidators([a.v], cfg.slowExtraMs, { at: now, until: now + cfg.slowMs });
-      return { ok: true, cost: cfg.costs.slowValidator, script, feed: `chaos slowed v${a.v} by ${cfg.slowExtraMs}ms` };
+      return { ok: true, cost: cfg.costs.slowValidator, script, feed: `chaos slowed v${a.v} by ${cfg.slowExtraMs}ms`, slowUntil: { v: a.v, until: now + cfg.slowMs } };
     }
     case "lossBurst": {
+      if (now < g.lossUntil || net.lossRate > 0) return no("packet loss is already active");
       const script = lossBurst(cfg.lossRate, { at: now, until: now + cfg.lossMs });
-      return { ok: true, cost: cfg.costs.lossBurst, script, feed: `chaos started ${Math.round(cfg.lossRate * 100)}% packet loss` };
+      return { ok: true, cost: cfg.costs.lossBurst, script, feed: `chaos started ${Math.round(cfg.lossRate * 100)}% packet loss`, lossUntil: now + cfg.lossMs };
     }
     case "revive": {
       if (!validIndex(net, a.v)) return no("invalid validator");

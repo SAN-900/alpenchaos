@@ -53,6 +53,27 @@ test("GET /leaderboard/:scenarioId ranks scores and validates its query", async 
   expect((await app.request("/leaderboard/BAD ID")).status).toBe(400);
 });
 
+test("GET /replays lists recent matches and validates its limit", async () => {
+  const { app, store } = fresh();
+  store.saveMatch(rec);
+  const response = await app.request("/replays?limit=10");
+  expect(response.status).toBe(200);
+  expect(await response.json()).toMatchObject({
+    count: 1,
+    replays: [{
+      id: "match-1",
+      scenarioId: "daily-2026-10-17",
+      winner: "chaos",
+      players: [
+        { role: "chaos", name: "Ana", score: 70 },
+        { role: "defender", name: "Bo", score: 20 },
+      ],
+    }],
+  });
+  expect((await app.request("/replays?limit=0")).status).toBe(400);
+  expect((await app.request("/replays?limit=101")).status).toBe(400);
+});
+
 test("GET /replays/:id returns the action log; unknown or malformed ids are 404", async () => {
   const { app, store } = fresh();
   store.saveMatch(rec);

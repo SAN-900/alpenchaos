@@ -14,9 +14,15 @@ function contract(make: () => Store) {
   s.saveMatch(rec("m1"));
   s.saveMatch(rec("m2", { createdAt: 2000, players: [{ role: "chaos", name: "Cy", score: 80 }, { role: "defender", name: "Di", score: 5 }], objectiveMet: null }));
   s.saveMatch(rec("m3", { createdAt: 3000, players: [{ role: "chaos", name: "Ed", score: 50 }] }));
-  s.saveMatch(rec("m4", { scenarioId: "baseline", players: [{ role: "chaos", name: "Zed", score: 999 }] }));
+  s.saveMatch(rec("m4", { scenarioId: "baseline", createdAt: 4000, players: [{ role: "chaos", name: "Zed", score: 999 }] }));
 
   const m1 = s.getMatch("m1")!;
+  expect(s.recent(2).map((m) => m.id)).toEqual(["m4", "m3"]);
+  expect(s.recent(1)[0]).toMatchObject({
+    id: "m4",
+    scenarioId: "baseline",
+    players: [{ role: "chaos", name: "Zed", score: 999 }],
+  });
   expect(m1.actions).toEqual([{ t: 1000, role: "chaos", action: { type: "partition", pct: 40 } }]);
   expect(m1.players.map((p) => [p.role, p.name, p.score]).sort()).toEqual([["chaos", "Ana", 50], ["defender", "Bo", 12]]);
   expect(m1.objectiveMet).toBe(true);

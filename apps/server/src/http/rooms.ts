@@ -43,6 +43,15 @@ export function roomRoutes(deps: { hub: Hub; store: Store }): Hono {
     return c.json({ scenarioId, role, rows: store.top(scenarioId, role, limit) });
   });
 
+  routes.get("/replays", (c) => {
+    const limit = Number(c.req.query("limit") ?? 50);
+    if (!Number.isInteger(limit) || limit < 1 || limit > 100) {
+      return c.json({ error: "INVALID_REQUEST", message: "limit must be an integer from 1 to 100" }, 400);
+    }
+    const replays = store.recent(limit);
+    return c.json({ count: replays.length, replays });
+  });
+
   /** Everything needed to re-simulate a finished match: scenario id + action log. */
   routes.get("/replays/:id", (c) => {
     const id = c.req.param("id");

@@ -30,6 +30,7 @@ export default function RootLayout({ children }: { children: ReactNode }) {
               <Link href="/play" className="nav-link">Play vs bot</Link>
               <Link href="/arena" className="nav-link">Online arena</Link>
               <Link href="/scores" className="nav-link">Scores</Link>
+              <Link href="/replays" className="nav-link">Replays</Link>
               <Link href="/about" className="nav-link">About</Link>
               <Link href="/guide" className="nav-link">Guide</Link>
             </div>

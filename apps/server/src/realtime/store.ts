@@ -20,10 +20,12 @@ export type MatchRecord = {
 };
 
 export type ScoreRow = { name: string; score: number; matchId: string; createdAt: number };
+export type ReplaySummary = Pick<MatchRecord, "id" | "scenarioId" | "winner" | "reason" | "simMs" | "createdAt" | "players">;
 
 export interface Store {
   saveMatch(m: MatchRecord): void;
   getMatch(id: string): MatchRecord | undefined;
+  recent(limit: number): ReplaySummary[];
   top(scenarioId: string, role: Role, limit: number): ScoreRow[];
 }
 
@@ -37,6 +39,14 @@ export class MemoryStore implements Store {
   getMatch(id: string): MatchRecord | undefined {
     const m = this.matches.get(id);
     return m && structuredClone(m);
+  }
+  recent(limit: number): ReplaySummary[] {
+    return [...this.matches.values()]
+      .sort((a, b) => b.createdAt - a.createdAt || b.id.localeCompare(a.id))
+      .slice(0, clampLimit(limit))
+      .map(({ id, scenarioId, winner, reason, simMs, createdAt, players }) =>
+        structuredClone({ id, scenarioId, winner, reason, simMs, createdAt, players }),
+      );
   }
   top(scenarioId: string, role: Role, limit: number): ScoreRow[] {
     const rows: ScoreRow[] = [];
@@ -133,6 +143,47 @@ export class SqliteStore implements Store {
       actions: JSON.parse(row.actions) as LoggedAction[],
       players: players.map((p) => ({ role: p.role, name: p.name, score: p.score })),
     };
+  }
+
+  recent(limit: number): ReplaySummary[] {
+    const rows = this.db.prepare(
+      `SELECT m.id, m.scenario_id AS scenarioId, m.winner, m.reason, m.sim_ms AS simMs,
+              m.created_at AS createdAt, r.role, r.name, r.score
+       FROM (SELECT id, scenario_id, winner, reason, sim_ms, created_at
+             FROM matches ORDER BY created_at DESC, id DESC LIMIT ?) AS m
+       LEFT JOIN results AS r ON r.match_id = m.id
+       ORDER BY m.created_at DESC, m.id DESC, r.role`,
+    ).all(clampLimit(limit)) as {
+      id: string;
+      scenarioId: string;
+      winner: Role;
+      reason: string;
+      simMs: number;
+      createdAt: number;
+      role: Role | null;
+      name: string | null;
+      score: number | null;
+    }[];
+    const matches = new Map<string, ReplaySummary>();
+    for (const row of rows) {
+      let match = matches.get(row.id);
+      if (!match) {
+        match = {
+          id: row.id,
+          scenarioId: row.scenarioId,
+          winner: row.winner,
+          reason: row.reason,
+          simMs: row.simMs,
+          createdAt: row.createdAt,
+          players: [],
+        };
+        matches.set(row.id, match);
+      }
+      if (row.role && row.name !== null && row.score !== null) {
+        match.players.push({ role: row.role, name: row.name, score: row.score });
+      }
+    }
+    return [...matches.values()];
   }
 
   top(scenarioId: string, role: Role, limit: number): ScoreRow[] {
