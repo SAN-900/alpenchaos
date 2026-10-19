@@ -56,6 +56,12 @@ export type GameState = {
   cfg: GameConfig;
   players: Record<Role, PlayerState>;
   frontier: number;
+  /** Sim time before which chaos cannot start another partition (the previous one's scheduled end). */
+  partitionUntil: number;
+  /** Sim time until which a player-started packet-loss burst is running. */
+  lossUntil: number;
+  /** Per validator (by index): sim time until which a player-started slowdown is running. */
+  slowUntil: Record<string, number>;
   unsettled: number[];
   stallMs: number;
   longestStallMs: number;

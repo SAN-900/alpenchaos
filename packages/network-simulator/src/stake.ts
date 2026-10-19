@@ -1,9 +1,10 @@
+import { detPow } from "@alpenchaos/simulation-core";
 import type { NetworkState } from "./types";
 
 /** Integer stakes following a Zipf-like distribution; sums exactly to `total`. */
 export function makeStakes(n: number, s: number, total: number): number[] {
   if (!Number.isInteger(n) || n < 1) throw new RangeError("makeStakes: n must be >= 1");
-  const w = Array.from({ length: n }, (_, i) => 1 / Math.pow(i + 1, s));
+  const w = Array.from({ length: n }, (_, i) => 1 / detPow(i + 1, s));
   const sumW = w.reduce((a, b) => a + b, 0);
   const stakes = w.map((x) => Math.max(1, Math.floor((total * x) / sumW)));
   const used = stakes.reduce((a, b) => a + b, 0);

@@ -8,12 +8,15 @@
     "test": "vitest run",
     "typecheck": "tsc -p tsconfig.json"
   },
-  "dependencies": { "@alpenchaos/shared": "workspace:*" },
+  "dependencies": {
+    "@alpenchaos/shared": "workspace:*"
+  },
   "devDependencies": {
     "@alpenchaos/network-simulator": "workspace:*",
     "@alpenchaos/protocol-alpenglow": "workspace:*",
     "@alpenchaos/simulation-core": "workspace:*",
     "typescript": "^5",
     "vitest": "^3"
-  }
+  },
+  "sideEffects": false
 }

@@ -1,16 +1,17 @@
 {
-    "name": "@alpenchaos/simulation-core",
-    "version": "0.1.0",
-    "private": true,
-    "type": "module",
-    "exports": {
-        ".": "./src/index.ts"
-    },
-    "scripts": {
-        "test": "vitest run",
-        "typecheck": "tsc --noEmit -p tsconfig.json"
-    },
-    "dependencies": {
-        "@alpenchaos/shared": "workspace:*"
-    }
+  "name": "@alpenchaos/simulation-core",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit -p tsconfig.json"
+  },
+  "dependencies": {
+    "@alpenchaos/shared": "workspace:*"
+  },
+  "sideEffects": false
 }

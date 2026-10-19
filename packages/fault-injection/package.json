@@ -18,5 +18,6 @@
     "@alpenchaos/simulation-core": "workspace:*",
     "typescript": "^5",
     "vitest": "^3"
-  }
+  },
+  "sideEffects": false
 }

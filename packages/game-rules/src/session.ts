@@ -80,6 +80,9 @@ export class GameSession {
     spend(p, this.game.cfg, now, plan.cost);
     injectFaults(this.engine, plan.script);
     if (plan.tx) this.game.txs.push({ spec: plan.tx, scored: false });
+    if (plan.partitionUntil !== undefined) this.game.partitionUntil = plan.partitionUntil;
+    if (plan.lossUntil !== undefined) this.game.lossUntil = plan.lossUntil;
+    if (plan.slowUntil) this.game.slowUntil[String(plan.slowUntil.v)] = plan.slowUntil.until;
     this.game.actions.push({ t: now, role, action });
     this.game.feed.push({ t: now, text: plan.feed });
     return { ok: true, cost: plan.cost };

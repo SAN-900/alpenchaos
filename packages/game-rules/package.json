@@ -19,5 +19,6 @@
     "@alpenchaos/protocol-legacy": "workspace:*",
     "typescript": "^5",
     "vitest": "^3"
-  }
+  },
+  "sideEffects": false
 }

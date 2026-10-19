@@ -1,0 +1,10 @@
+{
+  "/arena/page": "app/arena/page.js",
+  "/scores/page": "app/scores/page.js",
+  "/watch/[id]/page": "app/watch/[id]/page.js",
+  "/replays/[id]/page": "app/replays/[id]/page.js",
+  "/scenarios/page": "app/scenarios/page.js",
+  "/play/page": "app/play/page.js",
+  "/about/page": "app/about/page.js",
+  "/guide/page": "app/guide/page.js"
+}
