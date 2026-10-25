@@ -6,6 +6,9 @@ import "./globals.css";
 export const metadata: Metadata = {
   title: "AlpenChaos",
   description: "Break Solana consensus and watch Alpenglow finalize anyway. An interactive finality simulator.",
+  icons: {
+    icon: "/Alpenchaos.png",
+  },
 };
 
 export const viewport: Viewport = {
@@ -31,8 +34,8 @@ export default function RootLayout({ children }: { children: ReactNode }) {
               <Link href="/arena" className="nav-link">Online arena</Link>
               <Link href="/scores" className="nav-link">Scores</Link>
               <Link href="/replays" className="nav-link">Replays</Link>
-              <Link href="/about" className="nav-link">About</Link>
-              <Link href="/guide" className="nav-link">Guide</Link>
+              <Link href="/live" className="nav-link">Live Network</Link>
+              <Link href="/" className="nav-link">About</Link>
             </div>
             <Link href="/scenarios" className="nav-cta">Explore simulations <span aria-hidden="true">↗</span></Link>
           </nav>
@@ -40,7 +43,7 @@ export default function RootLayout({ children }: { children: ReactNode }) {
           <footer className="site-footer">
             <Link href="/" className="footer-brand">alpen<b>chaos</b></Link>
             <span>Deterministic consensus simulations. No real network is touched.</span>
-            <div><Link href="/about">About</Link><Link href="/guide">Guide & API</Link></div>
+            <div><Link href="/">About</Link></div>
           </footer>
         </div>
       </body>

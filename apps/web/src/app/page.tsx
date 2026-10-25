@@ -86,7 +86,7 @@ export default function Home() {
       <section className="home-race">
         <div className="race-heading"><div><p className="eyebrow">ONE NETWORK. TWO RULESETS.</p><h2>Finality, side by side.</h2></div><p>Compare how protocols respond to the same seeded validators, delays, and failures.</p></div>
         <Race />
-        <div className="race-foot"><span>ALPENGLOW <i>FAST / SLOW PATH</i></span><span>TOWER BFT <i>LOCKOUTS</i></span><Link href="/guide">How to read this <b>↗</b></Link></div>
+        <div className="race-foot"><span>ALPENGLOW <i>FAST / SLOW PATH</i></span><span>TOWER BFT <i>LOCKOUTS</i></span><Link href="/about#how-it-works">How it works <b>↗</b></Link></div>
       </section>
 
       <section className="home-bottom-cta">

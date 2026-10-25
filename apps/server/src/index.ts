@@ -6,6 +6,7 @@ import { websocketHandlers, type WsData } from "./realtime/bun-ws";
 import { SqliteStore } from "./realtime/store";
 import { sweep } from "./rooms/registry";
 import { websocket as sessionWebsocket } from "./ws/handler";
+import { LiveObserver } from "./live/observer";
 
 const port = Number(Bun.env.PORT ?? 3001);
 if (!Number.isInteger(port) || port < 1 || port > 65535) {
@@ -14,7 +15,14 @@ if (!Number.isInteger(port) || port < 1 || port > 65535) {
 
 const store = new SqliteStore(new Database(Bun.env.DB_PATH ?? "alpenchaos.sqlite", { create: true }));
 const hub = new Hub({ store, now: Date.now, randomId: () => crypto.randomUUID() });
-const app = createApp({ hub, store });
+const liveObserver = new LiveObserver();
+liveObserver.start(15_000);
+
+const app = createApp({
+  hub,
+  store,
+  liveObserver,
+});
 const origins = getAllowedOrigins();
 
 

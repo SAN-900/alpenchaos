@@ -8,8 +8,10 @@ import { scenarioRoutes } from "./http/scenarios";
 import { sessionRoutes } from "./http/sessions";
 import { Hub } from "./realtime/hub";
 import { MemoryStore, type Store } from "./realtime/store";
+import { liveRoutes } from "./http/live";
+import { LiveObserver } from "./live/observer";
 
-export type AppDeps = { hub: Hub; store: Store };
+export type AppDeps = { hub: Hub; store: Store, liveObserver?: LiveObserver, enableLegacySessions?: boolean};
 
 export function createApp(deps: AppDeps): Hono {
   const app = new Hono();
@@ -26,8 +28,14 @@ export function createApp(deps: AppDeps): Hono {
 
   app.route("/", healthRoutes);
   app.route("/", scenarioRoutes);
-  app.route("/", sessionRoutes);
+  if (deps.enableLegacySessions ?? true) {
+    app.route("/", sessionRoutes);
+  }
   app.route("/", roomRoutes(deps));
+
+  if (deps.liveObserver) {
+    app.route("/", liveRoutes(deps.liveObserver));
+  }
 
   app.notFound((c) => c.json({ error: "NOT_FOUND", message: "Route not found" }, 404));
   app.onError((err, c) => {
