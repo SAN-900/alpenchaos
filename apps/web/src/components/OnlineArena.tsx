@@ -287,7 +287,6 @@ export function OnlineArena() {
           </section>
         </div>
         {error && <p className="alert error" role="alert">{error}</p>}
-        <p className="arena-note">Online play requires the AlpenChaos server. Set <code>NEXT_PUBLIC_API_URL</code> to its public HTTP(S) origin when deployed.</p>
       </main>
     );
   }
