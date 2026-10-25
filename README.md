@@ -130,17 +130,6 @@ pnpm --filter @alpenchaos/web start
 
 The server package currently defines `start` as `bun src/index.ts`. The frontend uses Next.js. The monorepo includes package-level test and typecheck scripts; individual packages may not all define both.
 
-## Deploy the frontend on Vercel
-
-1. Import this Git repository in Vercel and create a project.
-2. Set **Root Directory** to `apps/web`. Keep the Next.js framework preset and let Vercel detect the build and output settings (`pnpm build`, `.next`).
-3. Make sure the build can access files outside the root directory, since the web app imports workspace packages from `packages/`.
-4. Deploy. The frontend's local simulations work without the API server.
-
-Online arena, replay, leaderboard, and live-network API requests need a separately deployed API server; the current Bun/SQLite/WebSocket server is not part of the Vercel frontend deployment. Once that server is available, add `NEXT_PUBLIC_API_URL` in the Vercel project's **Environment Variables** (for example, `https://api.example.com`) and redeploy. The API server must allow the Vercel production/custom-domain origin via `ALLOWED_ORIGINS`. Do not use `localhost` for the deployed API URL.
-
-For pnpm workspace installs, Vercel must use the repository's `pnpm-lock.yaml` and `pnpm-workspace.yaml`. If Vercel asks for an install command, use `pnpm install --frozen-lockfile`.
-
 ## API and realtime overview
 
 The API server is implemented with Hono and Bun. The current app includes health, scenario, room, replay, and leaderboard routes, plus WebSocket handling. The exact enabled endpoints depend on the server code and configuration in the checked-out revision.
